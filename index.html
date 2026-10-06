@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activity Tracker</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f0f0f">
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --surface: #181818;
+    --surface2: #222222;
+    --surface3: #2a2a2a;
+    --border: #2e2e2e;
+    --border2: #3a3a3a;
+    --text: #e8e8e6;
+    --text2: #9b9b97;
+    --text3: #6b6b67;
+    --accent: #5b8def;
+    --accent-dim: #1a2d52;
+    --green: #4caf6e;
+    --green-dim: #152b1e;
+    --amber: #e5a84b;
+    --amber-dim: #2e2210;
+    --red: #e05454;
+    --red-dim: #2e1414;
+    --radius: 6px;
+    --sidebar-w: 220px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+    font-size: 13px;
+  }
+
+  /* ── Sidebar ── */
+  #sidebar {
+    width: var(--sidebar-w);
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+
+  #sidebar-header {
+    padding: 18px 16px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  #sidebar-header h1 {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .02em;
+    color: var(--text);
+  }
+  #sidebar-header p {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 2px;
+  }
+
+  .nav-section {
+    padding: 14px 10px 6px;
+  }
+  .nav-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    color: var(--text3);
+    padding: 0 6px;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    color: var(--text2);
+    transition: background .12s, color .12s;
+    font-size: 12.5px;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: var(--surface3); color: var(--text); }
+  .nav-item svg { flex-shrink: 0; opacity: .7; }
+  .nav-item.active svg { opacity: 1; }
+  .nav-badge {
+    margin-left: auto;
+    background: var(--surface3);
+    color: var(--text3);
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    min-width: 18px;
+    text-align: center;
+  }
+  .nav-item.active .nav-badge { background: var(--accent-dim); color: var(--accent); }
+
+  #sidebar-footer {
+    margin-top: auto;
+    padding: 12px;
+    border-top: 1px solid var(--border);
+  }
+  #server-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text3);
+  }
+  #status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--border2);
+    flex-shrink: 0;
+    transition: background .3s;
+  }
+  #status-dot.online { background: var(--green); }
+  #status-dot.offline { background: var(--red); }
+
+  /* ── Main area ── */
+  #main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #topbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+  #page-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  #topbar-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 11px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border2);
+    background: var(--surface2);
+    color: var(--text2);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all .12s;
+    font-family: inherit;
+  }
+  .btn:hover { background: var(--surface3); color: var(--text); border-color: var(--border2); }
+  .btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .btn.primary:hover { opacity: .88; }
+  .btn svg { flex-shrink: 0; }
+
+  /* ── Content panels ── */
+  .panel { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+  .panel.active { display: flex; }
+
+  /* ── Tasks panel ── */
+  #tasks-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text3);
+    letter-spacing: .07em;
+    text-transform: uppercase;
+  }
+
+  /* Activity cards */
+  .activity-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    overflow: hidden;
+    transition: border-color .15s;
+  }
+  .activity-card:hover { border-color: var(--border2); }
+
+  .activity-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .activity-toggle {
+    width: 16px; height: 16px;
+    border-radius: 4px;
+    border: 1.5px solid var(--border2);
+    background: none;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all .12s;
+  }
+  .activity-toggle:hover { border-color: var(--accent); }
+  .activity-toggle.done {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .activity-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    flex: 1;
+  }
+  .activity-name.done { text-decoration: line-through; color: var(--text3); }
+
+  .activity-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .pill {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+  .pill.priority-high { background: var(--red-dim); color: var(--red); }
+  .pill.priority-medium { background: var(--amber-dim); color: var(--amber); }
+  .pill.priority-low { background: var(--green-dim); color: var(--green); }
+  .pill.source-transcript { background: var(--accent-dim); color: var(--accent); }
+
+  .due-badge {
+    font-size: 10px;
+    color: var(--text3);
+    display: flex; align-items: center; gap: 3px;
+  }
+  .due-badge.overdue { color: var(--red); }
+  .due-badge.soon { color: var(--amber); }
+
+  .chevron {
+    color: var(--text3);
+    transition: transform .15s;
+    flex-shrink: 0;
+  }
+  .chevron.open { transform: rotate(90deg); }
+
+  .activity-expand {
+    display: none;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .activity-expand.open { display: block; }
+
+  /* Quick tasks under activity */
+  .task-list { padding: 4px 0; }
+  .task-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px 7px 40px;
+    transition: background .1s;
+  }
+  .task-row:hover { background: var(--surface); }
+  .task-check {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border2);
+    background: none;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all .12s;
+  }
+  .task-check:hover { border-color: var(--green); }
+  .task-check.done { background: var(--green); border-color: var(--green); }
+  .task-name {
+    flex: 1;
+    font-size: 12.5px;
+    color: var(--text2);
+  }
+  .task-name.done { text-decoration: line-through; color: var(--text3); }
+  .task-meta { display: flex; align-items: center; gap: 6px; }
+  .add-task-row {
+    padding: 6px 14px 8px 40px;
+    display: flex;
+    gap: 6px;
+  }
+  .inline-input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-size: 12px;
+    padding: 4px 8px;
+    font-family: inherit;
+  }
+  .inline-input:focus { outline: none; border-color: var(--accent); }
+  .inline-input::placeholder { color: var(--text3); }
+
+  /* Standalone quick tasks */
+  .quick-task-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    transition: border-color .12s;
+  }
+  .quick-task-card:hover { border-color: var(--border2); }
+
+  /* ── Gantt panel ── */
+  #gantt-container {
+    flex: 1;
+    overflow: auto;
+    padding: 20px;
+  }
+
+  #gantt-chart {
+    min-width: 700px;
+  }
+
+  .gantt-header {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 10;
+  }
+  .gantt-label-col {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text3);
+    padding: 8px 10px;
+    border-right: 1px solid var(--border);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+  }
+  .gantt-timeline-header {
+    display: flex;
+    overflow: hidden;
+  }
+  .gantt-day {
+    flex-shrink: 0;
+    text-align: center;
+    font-size: 10px;
+    color: var(--text3);
+    padding: 8px 0 6px;
+    border-right: 1px solid var(--border);
+  }
+  .gantt-day.today { color: var(--accent); font-weight: 600; }
+  .gantt-day.weekend { color: var(--text3); opacity: .4; }
+
+  .gantt-row {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    border-bottom: 1px solid var(--border);
+    min-height: 36px;
+  }
+  .gantt-row:hover .gantt-row-label { background: var(--surface); }
+  .gantt-row-label {
+    padding: 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-right: 1px solid var(--border);
+    transition: background .1s;
+    overflow: hidden;
+  }
+  .gantt-row-label span {
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .gantt-row-label.activity span { color: var(--text); font-weight: 500; }
+  .gantt-row-label.task span { color: var(--text2); padding-left: 14px; font-size: 11.5px; }
+
+  .gantt-bar-area {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .gantt-bar {
+    position: absolute;
+    height: 18px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    padding: 0 6px;
+    font-size: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: opacity .15s;
+    cursor: default;
+  }
+  .gantt-bar:hover { opacity: .85; }
+  .gantt-bar.activity-bar { background: var(--accent); color: #fff; }
+  .gantt-bar.task-bar { background: var(--surface3); color: var(--text2); border: 1px solid var(--border2); }
+  .gantt-bar.done-bar { background: var(--green-dim); color: var(--green); border: 1px solid var(--green-dim); }
+  .gantt-bar.overdue-bar { background: var(--red-dim); border: 1px solid var(--red-dim); color: var(--red); }
+
+  .gantt-today-line {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 1px;
+    background: var(--accent);
+    opacity: .5;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  /* ── Modal ── */
+  #modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.6);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  #modal-overlay.open { display: flex; }
+  #modal {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    width: 440px;
+    max-width: 95vw;
+    padding: 20px 22px 18px;
+  }
+  #modal h2 { font-size: 14px; font-weight: 600; margin-bottom: 16px; }
+
+  .form-row { margin-bottom: 12px; }
+  .form-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 4px;
+  }
+  .form-input, .form-select, .form-textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: 13px;
+    padding: 7px 10px;
+    font-family: inherit;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .form-input::placeholder { color: var(--text3); }
+  .form-select { appearance: none; cursor: pointer; }
+  .form-select option { background: var(--surface2); }
+  .form-textarea { resize: vertical; min-height: 60px; }
+
+  .form-row-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ── Empty states ── */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 48px 20px;
+    color: var(--text3);
+  }
+  .empty-state svg { opacity: .3; }
+  .empty-state p { font-size: 12px; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 10px; }
+
+  /* ── Notifications panel ── */
+  #notif {
+    position: fixed;
+    bottom: 16px; right: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 200;
+    pointer-events: none;
+  }
+  .toast {
+    background: var(--surface3);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 9px 13px;
+    font-size: 12px;
+    color: var(--text);
+    pointer-events: all;
+    animation: slideIn .15s ease;
+    max-width: 280px;
+  }
+  .toast.success { border-color: var(--green); color: var(--green); }
+  .toast.error { border-color: var(--red); color: var(--red); }
+  @keyframes slideIn { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform: none; } }
+
+  /* Context menu */
+  .ctx-menu {
+    position: fixed;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 4px;
+    z-index: 300;
+    min-width: 140px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  }
+  .ctx-item {
+    padding: 6px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    color: var(--text2);
+    transition: background .1s;
+  }
+  .ctx-item:hover { background: var(--surface3); color: var(--text); }
+  .ctx-item.danger { color: var(--red); }
+  .ctx-item.danger:hover { background: var(--red-dim); }
+  .ctx-sep { height: 1px; background: var(--border); margin: 4px 0; }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<nav id="sidebar">
+  <div id="sidebar-header">
+    <h1>Activity Tracker</h1>
+    <p id="today-label">Today</p>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Views</div>
+    <div class="nav-item active" data-panel="tasks" onclick="switchPanel('tasks', this)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+        <rect x="2" y="3" width="12" height="2" rx="1"/><rect x="2" y="7" width="9" height="2" rx="1"/><rect x="2" y="11" width="11" height="2" rx="1"/>
+      </svg>
+      All tasks
+      <span class="nav-badge" id="badge-tasks">0</span>
+    </div>
+    <div class="nav-item" data-panel="gantt" onclick="switchPanel('gantt', this)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+        <rect x="2" y="3" width="7" height="2" rx="1"/><rect x="2" y="7" width="10" height="2" rx="1"/><rect x="2" y="11" width="5" height="2" rx="1"/>
+      </svg>
+      Timeline
+      <span class="nav-badge" id="badge-gantt">—</span>
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Filter</div>
+    <div class="nav-item" onclick="setFilter('open', this)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="8" cy="8" r="5.5"/>
+      </svg>
+      Open
+      <span class="nav-badge" id="badge-open">0</span>
+    </div>
+    <div class="nav-item" onclick="setFilter('done', this)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="8" cy="8" r="5.5"/><path d="M5.5 8l2 2 3-3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Done
+      <span class="nav-badge" id="badge-done">0</span>
+    </div>
+    <div class="nav-item" onclick="setFilter('overdue', this)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="8" cy="8" r="5.5"/><path d="M8 5v3.5l2 1" stroke-linecap="round"/>
+      </svg>
+      Overdue
+      <span class="nav-badge" id="badge-overdue">0</span>
+    </div>
+  </div>
+
+  <div id="sidebar-footer">
+    <div id="server-status">
+      <div id="status-dot"></div>
+      <span id="status-label">API server offline</span>
+    </div>
+  </div>
+</nav>
+
+<!-- Main -->
+<main id="main">
+  <header id="topbar">
+    <span id="page-title">All tasks</span>
+    <div id="topbar-actions">
+      <button class="btn" onclick="openModal('activity')">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M6 1v10M1 6h10" stroke-linecap="round"/>
+        </svg>
+        New activity
+      </button>
+      <button class="btn primary" onclick="openModal('task')">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M6 1v10M1 6h10" stroke-linecap="round"/>
+        </svg>
+        Quick task
+      </button>
+    </div>
+  </header>
+
+  <!-- Tasks panel -->
+  <div id="panel-tasks" class="panel active">
+    <div id="tasks-container">
+      <div id="activities-section">
+        <div class="section-header">
+          <span class="section-title">Main activities</span>
+        </div>
+        <div id="activities-list"></div>
+      </div>
+      <div id="quick-section" style="margin-top:20px">
+        <div class="section-header">
+          <span class="section-title">Quick tasks</span>
+        </div>
+        <div id="quick-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gantt panel -->
+  <div id="panel-gantt" class="panel">
+    <div id="gantt-container">
+      <div id="gantt-chart"></div>
+    </div>
+  </div>
+</main>
+
+<!-- Modal -->
+<div id="modal-overlay" onclick="maybeCloseModal(event)">
+  <div id="modal">
+    <h2 id="modal-title">New activity</h2>
+    <form id="modal-form" onsubmit="submitModal(event)">
+
+      <div class="form-row">
+        <label class="form-label">Title</label>
+        <input class="form-input" id="field-title" placeholder="e.g. Complete the FDD" required>
+      </div>
+
+      <div class="form-row-2col">
+        <div class="form-row" style="margin:0">
+          <label class="form-label">Due date</label>
+          <input class="form-input" id="field-due" type="date">
+        </div>
+        <div class="form-row" style="margin:0">
+          <label class="form-label">Priority</label>
+          <select class="form-select" id="field-priority">
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row" id="field-activity-row">
+        <label class="form-label">Parent activity</label>
+        <select class="form-select" id="field-parent">
+          <option value="">None (standalone quick task)</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">Notes</label>
+        <textarea class="form-textarea" id="field-notes" placeholder="Optional context…"></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn primary" id="modal-submit">Create</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Context menu -->
+<div id="ctx-menu" class="ctx-menu" style="display:none"></div>
+
+<!-- Notifications -->
+<div id="notif"></div>
+
+<script>
+const API = 'http://localhost:3747';
+let data = { activities: [], tasks: [] };
+let currentFilter = null;
+let modalMode = 'activity';
+let editId = null;
+
+async function init() {
+  document.getElementById('today-label').textContent = new Date().toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'short' });
+  await loadData();
+  renderAll();
+  checkServerStatus();
+  setInterval(checkServerStatus, 8000);
+  connectSSE();
+}
+
+async function loadData() {
+  try {
+    const r = await fetch(`${API}/data`, { signal: AbortSignal.timeout(2000) });
+    if (r.ok) data = await r.json();
+  } catch {
+    const s = localStorage.getItem('activity-tracker-data');
+    if (s) data = JSON.parse(s);
+  }
+}
+
+async function saveData() {
+  try {
+    await fetch(`${API}/data`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+      signal: AbortSignal.timeout(2000)
+    });
+  } catch {
+    localStorage.setItem('activity-tracker-data', JSON.stringify(data));
+  }
+}
+
+async function checkServerStatus() {
+  try {
+    const r = await fetch(`${API}/health`, { signal: AbortSignal.timeout(2000) });
+    const dot = document.getElementById('status-dot');
+    const lbl = document.getElementById('status-label');
+    if (r.ok) { dot.className = 'online'; lbl.textContent = 'API server online'; }
+    else throw new Error();
+  } catch {
+    document.getElementById('status-dot').className = 'offline';
+    document.getElementById('status-label').textContent = 'API server offline';
+  }
+}
+
+function connectSSE() {
+  try {
+    const es = new EventSource(`${API}/events`);
+    es.onmessage = async (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'update') {
+        await loadData();
+        renderAll();
+        toast(`${msg.count || 1} task(s) added from transcript`, 'success');
+      }
+    };
+    es.onerror = () => es.close();
+  } catch {}
+}
+
+function renderAll() { renderTasks(); renderGantt(); updateBadges(); }
+
+function renderTasks() {
+  const acts = filterActivities();
+  const tasks = filterTasks();
+  const actEl = document.getElementById('activities-list');
+  if (acts.length === 0) {
+    actEl.innerHTML = `<div class="empty-state"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 9h18"/></svg><p>No activities yet — create one or paste a transcript</p></div>`;
+  } else {
+    actEl.innerHTML = acts.map(a => renderActivity(a)).join('');
+    document.querySelectorAll('[data-expand-id]').forEach(el => {
+      el.addEventListener('click', e => {
+        e.stopPropagation();
+        const id = el.dataset.expandId;
+        document.getElementById(`expand-${id}`).classList.toggle('open');
+        document.getElementById(`chev-${id}`).classList.toggle('open');
+      });
+    });
+  }
+  const quickEl = document.getElementById('quick-list');
+  if (tasks.length === 0) {
+    quickEl.innerHTML = `<div class="empty-state" style="padding:20px"><p>No quick tasks</p></div>`;
+  } else {
+    quickEl.innerHTML = tasks.map(t => renderQuickTask(t)).join('');
+  }
+}
+
+function filterActivities() {
+  let acts = data.activities || [];
+  if (currentFilter === 'done') acts = acts.filter(a => a.done);
+  else if (currentFilter === 'open') acts = acts.filter(a => !a.done);
+  else if (currentFilter === 'overdue') acts = acts.filter(a => isOverdue(a));
+  return acts;
+}
+
+function filterTasks() {
+  let tasks = (data.tasks || []).filter(t => !t.parentId);
+  if (currentFilter === 'done') tasks = tasks.filter(t => t.done);
+  else if (currentFilter === 'open') tasks = tasks.filter(t => !t.done);
+  else if (currentFilter === 'overdue') tasks = tasks.filter(t => isOverdue(t));
+  return tasks;
+}
+
+function isOverdue(item) {
+  if (!item.dueDate || item.done) return false;
+  return new Date(item.dueDate) < new Date(new Date().toDateString());
+}
+
+function daysUntil(dateStr) {
+  if (!dateStr) return null;
+  return Math.round((new Date(dateStr) - new Date(new Date().toDateString())) / 86400000);
+}
+
+function dueBadge(item) {
+  if (!item.dueDate) return '';
+  const d = daysUntil(item.dueDate);
+  const fmt = new Date(item.dueDate).toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+  if (item.done) return `<span class="due-badge">${fmt}</span>`;
+  if (d < 0) return `<span class="due-badge overdue">Overdue ${fmt}</span>`;
+  if (d === 0) return `<span class="due-badge soon">Due today</span>`;
+  if (d <= 3) return `<span class="due-badge soon">Due ${fmt}</span>`;
+  return `<span class="due-badge">${fmt}</span>`;
+}
+
+function renderActivity(a) {
+  const childTasks = (data.tasks || []).filter(t => t.parentId === a.id);
+  const doneTasks = childTasks.filter(t => t.done).length;
+  const progress = childTasks.length ? `${doneTasks}/${childTasks.length}` : '';
+  const sourceTag = a.fromTranscript ? `<span class="pill source-transcript">transcript</span>` : '';
+  return `
+  <div class="activity-card" oncontextmenu="showCtx(event,'activity','${a.id}')">
+    <div class="activity-header" data-expand-id="${a.id}">
+      <div class="activity-toggle ${a.done ? 'done' : ''}" onclick="toggleItem(event,'activity','${a.id}')">
+        ${a.done ? `<svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="white" stroke-width="2"><path d="M1.5 4l2 2 3-3" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ''}
+      </div>
+      <span class="activity-name ${a.done ? 'done' : ''}">${esc(a.title)}</span>
+      <div class="activity-meta">
+        ${sourceTag}
+        <span class="pill priority-${a.priority || 'medium'}">${a.priority || 'medium'}</span>
+        ${dueBadge(a)}
+        ${progress ? `<span class="due-badge">${progress} tasks</span>` : ''}
+        <svg id="chev-${a.id}" class="chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4.5 3l3 3-3 3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div class="activity-expand" id="expand-${a.id}">
+      <div class="task-list">${childTasks.map(t => renderChildTask(t)).join('')}</div>
+      <div class="add-task-row"><input class="inline-input" placeholder="Add a task…" onkeydown="addTaskInline(event,'${a.id}')"></div>
+    </div>
+  </div>`;
+}
+
+function renderChildTask(t) {
+  return `
+  <div class="task-row" oncontextmenu="showCtx(event,'task','${t.id}')">
+    <div class="task-check ${t.done ? 'done' : ''}" onclick="toggleItem(event,'task','${t.id}')">
+      ${t.done ? `<svg width="7" height="7" viewBox="0 0 7 7" fill="none" stroke="white" stroke-width="2"><path d="M1 3.5l1.8 1.8 3-3.3" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ''}
+    </div>
+    <span class="task-name ${t.done ? 'done' : ''}">${esc(t.title)}</span>
+    <div class="task-meta">${dueBadge(t)}${t.fromTranscript ? `<span class="pill source-transcript" style="font-size:9px">AI</span>` : ''}</div>
+  </div>`;
+}
+
+function renderQuickTask(t) {
+  return `
+  <div class="quick-task-card" oncontextmenu="showCtx(event,'task','${t.id}')">
+    <div class="task-check ${t.done ? 'done' : ''}" onclick="toggleItem(event,'task','${t.id}')">
+      ${t.done ? `<svg width="7" height="7" viewBox="0 0 7 7" fill="none" stroke="white" stroke-width="2"><path d="M1 3.5l1.8 1.8 3-3.3" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ''}
+    </div>
+    <span class="task-name ${t.done ? 'done' : ''}" style="color:var(--text)">${esc(t.title)}</span>
+    <div class="task-meta">
+      ${t.priority ? `<span class="pill priority-${t.priority}">${t.priority}</span>` : ''}
+      ${dueBadge(t)}
+      ${t.fromTranscript ? `<span class="pill source-transcript" style="font-size:9px">AI</span>` : ''}
+    </div>
+  </div>`;
+}
+
+const DAY_W = 28;
+function renderGantt() {
+  const el = document.getElementById('gantt-chart');
+  const today = new Date(new Date().toDateString());
+  const rows = [];
+  (data.activities || []).forEach(a => {
+    if (a.dueDate || a.startDate) rows.push({ ...a, _type: 'activity' });
+    (data.tasks || []).filter(t => t.parentId === a.id && (t.dueDate || t.startDate)).forEach(t => rows.push({ ...t, _type: 'task' }));
+  });
+  (data.tasks || []).filter(t => !t.parentId && (t.dueDate || t.startDate)).forEach(t => rows.push({ ...t, _type: 'task' }));
+
+  if (rows.length === 0) {
+    el.innerHTML = `<div class="empty-state" style="padding:60px 0"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg><p>Add due dates to activities and tasks to see them on the timeline</p></div>`;
+    return;
+  }
+
+  const dates = rows.flatMap(r => [r.dueDate, r.startDate].filter(Boolean)).map(d => new Date(d));
+  let minDate = new Date(Math.min(...dates, today));
+  let maxDate = new Date(Math.max(...dates, today));
+  minDate.setDate(minDate.getDate() - 3);
+  maxDate.setDate(maxDate.getDate() + 7);
+
+  const days = [];
+  let d = new Date(minDate);
+  while (d <= maxDate) { days.push(new Date(d)); d.setDate(d.getDate() + 1); }
+
+  const totalW = days.length * DAY_W;
+  const todayIdx = days.findIndex(d => d.getTime() === today.getTime());
+
+  let headerHTML = `<div class="gantt-header"><div class="gantt-label-col">Task</div><div class="gantt-timeline-header" style="width:${totalW}px">`;
+  days.forEach((d, i) => {
+    const isToday = i === todayIdx;
+    const isWknd = d.getDay() === 0 || d.getDay() === 6;
+    const lbl = d.getDate() === 1 || i === 0 ? d.toLocaleDateString('en-GB', { day:'numeric', month:'short' }) : d.getDate();
+    headerHTML += `<div class="gantt-day ${isToday ? 'today' : ''} ${isWknd ? 'weekend' : ''}" style="width:${DAY_W}px">${lbl}</div>`;
+  });
+  headerHTML += `</div></div>`;
+
+  let rowsHTML = '';
+  rows.forEach(r => {
+    const start = r.startDate ? new Date(r.startDate) : today;
+    const end = r.dueDate ? new Date(r.dueDate) : start;
+    const startOff = Math.max(0, Math.round((start - minDate) / 86400000));
+    const endOff = Math.max(startOff, Math.round((end - minDate) / 86400000));
+    const barLeft = startOff * DAY_W;
+    const barW = Math.max(DAY_W, (endOff - startOff + 1) * DAY_W);
+    let barClass = r._type === 'activity' ? 'activity-bar' : 'task-bar';
+    if (r.done) barClass = 'done-bar';
+    else if (isOverdue(r)) barClass = 'overdue-bar';
+    const labelClass = r._type === 'activity' ? 'activity' : 'task';
+    rowsHTML += `
+    <div class="gantt-row">
+      <div class="gantt-row-label ${labelClass}">
+        ${r._type === 'task' ? '<svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.4"><circle cx="4" cy="4" r="2.5"/></svg>' : ''}
+        <span title="${esc(r.title)}">${esc(r.title)}</span>
+      </div>
+      <div class="gantt-bar-area" style="width:${totalW}px;position:relative">
+        ${todayIdx >= 0 ? `<div class="gantt-today-line" style="left:${(todayIdx + 0.5) * DAY_W}px"></div>` : ''}
+        <div class="gantt-bar ${barClass}" style="left:${barLeft}px;width:${barW}px" title="${esc(r.title)}">${barW > 50 ? esc(r.title) : ''}</div>
+      </div>
+    </div>`;
+  });
+
+  el.innerHTML = headerHTML + rowsHTML;
+  setTimeout(() => { const gc = document.getElementById('gantt-container'); gc.scrollLeft = Math.max(0, todayIdx * DAY_W - 100); }, 50);
+}
+
+function toggleItem(e, type, id) {
+  e.stopPropagation();
+  if (type === 'activity') { const a = data.activities.find(x => x.id === id); if (a) a.done = !a.done; }
+  else { const t = data.tasks.find(x => x.id === id); if (t) t.done = !t.done; }
+  saveData(); renderAll();
+}
+
+function addTaskInline(e, parentId) {
+  if (e.key !== 'Enter') return;
+  const val = e.target.value.trim();
+  if (!val) return;
+  if (!data.tasks) data.tasks = [];
+  data.tasks.push({ id: uid(), title: val, parentId, done: false, priority: 'medium', createdAt: new Date().toISOString() });
+  e.target.value = '';
+  saveData(); renderAll();
+  setTimeout(() => {
+    const body = document.getElementById(`expand-${parentId}`);
+    const chev = document.getElementById(`chev-${parentId}`);
+    if (body) body.classList.add('open');
+    if (chev) chev.classList.add('open');
+  }, 10);
+}
+
+let _modalType = 'activity';
+function openModal(type, existingId) {
+  _modalType = type; editId = existingId || null;
+  document.getElementById('modal-form').reset();
+  document.getElementById('modal-title').textContent = editId ? `Edit ${type}` : type === 'activity' ? 'New activity' : 'New quick task';
+  document.getElementById('modal-submit').textContent = editId ? 'Save' : 'Create';
+  const parentRow = document.getElementById('field-activity-row');
+  if (type === 'task') {
+    parentRow.style.display = 'block';
+    const sel = document.getElementById('field-parent');
+    sel.innerHTML = `<option value="">None (standalone quick task)</option>`;
+    (data.activities || []).forEach(a => { sel.innerHTML += `<option value="${a.id}">${esc(a.title)}</option>`; });
+  } else { parentRow.style.display = 'none'; }
+  if (editId) {
+    const item = type === 'activity' ? data.activities.find(x => x.id === editId) : data.tasks.find(x => x.id === editId);
+    if (item) {
+      document.getElementById('field-title').value = item.title;
+      document.getElementById('field-due').value = item.dueDate || '';
+      document.getElementById('field-priority').value = item.priority || 'medium';
+      document.getElementById('field-notes').value = item.notes || '';
+      if (type === 'task') document.getElementById('field-parent').value = item.parentId || '';
+    }
+  }
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('field-title').focus(), 50);
+}
+
+function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); editId = null; }
+function maybeCloseModal(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
+
+function submitModal(e) {
+  e.preventDefault();
+  const title = document.getElementById('field-title').value.trim();
+  const dueDate = document.getElementById('field-due').value || null;
+  const priority = document.getElementById('field-priority').value;
+  const notes = document.getElementById('field-notes').value.trim() || null;
+  const parentId = _modalType === 'task' ? (document.getElementById('field-parent').value || null) : null;
+  if (editId) {
+    if (_modalType === 'activity') { const a = data.activities.find(x => x.id === editId); if (a) Object.assign(a, { title, dueDate, priority, notes }); }
+    else { const t = data.tasks.find(x => x.id === editId); if (t) Object.assign(t, { title, dueDate, priority, notes, parentId }); }
+    toast('Updated', 'success');
+  } else {
+    if (_modalType === 'activity') {
+      if (!data.activities) data.activities = [];
+      data.activities.push({ id: uid(), title, dueDate, priority, notes, done: false, createdAt: new Date().toISOString() });
+    } else {
+      if (!data.tasks) data.tasks = [];
+      data.tasks.push({ id: uid(), title, dueDate, priority, notes, parentId, done: false, createdAt: new Date().toISOString() });
+    }
+    toast('Created', 'success');
+  }
+  saveData(); renderAll(); closeModal();
+}
+
+let _ctxId = null, _ctxType = null;
+function showCtx(e, type, id) {
+  e.preventDefault();
+  _ctxType = type; _ctxId = id;
+  const menu = document.getElementById('ctx-menu');
+  menu.innerHTML = `<div class="ctx-item" onclick="openModal('${type}','${id}')">Edit</div><div class="ctx-sep"></div><div class="ctx-item danger" onclick="deleteItem('${type}','${id}')">Delete</div>`;
+  menu.style.display = 'block'; menu.style.left = e.pageX + 'px'; menu.style.top = e.pageY + 'px';
+}
+document.addEventListener('click', () => { document.getElementById('ctx-menu').style.display = 'none'; });
+
+function deleteItem(type, id) {
+  if (type === 'activity') { data.activities = (data.activities || []).filter(x => x.id !== id); data.tasks = (data.tasks || []).filter(x => x.parentId !== id); }
+  else { data.tasks = (data.tasks || []).filter(x => x.id !== id); }
+  saveData(); renderAll(); toast('Deleted');
+}
+
+function switchPanel(name, el) {
+  document.querySelectorAll('.nav-item[data-panel]').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(`panel-${name}`).classList.add('active');
+  document.getElementById('page-title').textContent = name === 'tasks' ? 'All tasks' : 'Timeline';
+  if (name === 'gantt') renderGantt();
+}
+
+function setFilter(f, el) {
+  if (currentFilter === f) { currentFilter = null; document.querySelectorAll('.nav-item:not([data-panel])').forEach(n => n.classList.remove('active')); }
+  else { currentFilter = f; document.querySelectorAll('.nav-item:not([data-panel])').forEach(n => n.classList.remove('active')); el.classList.add('active'); }
+  renderTasks();
+}
+
+function updateBadges() {
+  const allItems = [...(data.activities || []), ...(data.tasks || [])];
+  document.getElementById('badge-tasks').textContent = allItems.length;
+  document.getElementById('badge-open').textContent = allItems.filter(x => !x.done).length;
+  document.getElementById('badge-done').textContent = allItems.filter(x => x.done).length;
+  document.getElementById('badge-overdue').textContent = allItems.filter(x => isOverdue(x)).length;
+}
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function esc(s) { if (!s) return ''; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function toast(msg, type = '') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`; el.textContent = msg;
+  document.getElementById('notif').appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); openModal('task'); }
+  if ((e.metaKey || e.ctrlKey) && e.key === 'n') { e.preventDefault(); openModal('activity'); }
+});
+
+if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(() => {}); }
+
+init();
+</script>
+</body>
+</html>

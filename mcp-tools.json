@@ -1,0 +1,31 @@
+{
+  "tools": [
+    {
+      "name": "add_tasks_from_transcript",
+      "description": "Add tasks and activities to the Activity Tracker app after analysing a meeting transcript.",
+      "input_schema": {
+        "type": "object",
+        "required": ["tasks"],
+        "properties": {
+          "source": { "type": "string", "description": "Label for the origin, e.g. 'Call with Vishal 2026-10-06'" },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["title"],
+              "properties": {
+                "title": { "type": "string" },
+                "type": { "type": "string", "enum": ["task", "activity"], "default": "task" },
+                "parentActivity": { "type": "string" },
+                "dueDate": { "type": "string", "description": "YYYY-MM-DD" },
+                "priority": { "type": "string", "enum": ["high", "medium", "low"], "default": "medium" },
+                "notes": { "type": "string" },
+                "fromTranscript": { "type": "boolean", "default": true }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
