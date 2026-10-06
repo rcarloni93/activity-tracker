@@ -1,15 +1,24 @@
 # Activity Tracker — desktop shortcut setup
-# Run this ONCE from PowerShell to create the desktop shortcut with icon.
+# Run this ONCE to create the desktop shortcut with the app icon.
 # Right-click this file → "Run with PowerShell"
 
-$appDir   = Split-Path -Parent $MyInvocation.MyCommand.Path
-$vbs      = Join-Path $appDir "start.vbs"
-$ico      = Join-Path $appDir "icon.ico"
-$desktop  = [Environment]::GetFolderPath("Desktop")
-$shortcut = Join-Path $desktop "Activity Tracker.lnk"
+$appDir  = Split-Path -Parent $MyInvocation.MyCommand.Path
+$vbs     = Join-Path $appDir "start.vbs"
+$ico     = Join-Path $appDir "icon.ico"
+$desktop = [Environment]::GetFolderPath("Desktop")
+$lnkPath = Join-Path $desktop "Activity Tracker.lnk"
 
+# ── Generate icon.ico from embedded base64 if it doesn't exist ──
+if (-not (Test-Path $ico)) {
+    Write-Host "Creating icon.ico..." -ForegroundColor Yellow
+    $b64 = "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"
+    [System.IO.File]::WriteAllBytes($ico, [System.Convert]::FromBase64String($b64))
+    Write-Host "icon.ico created." -ForegroundColor Green
+}
+
+# ── Create the desktop shortcut ──
 $shell = New-Object -ComObject WScript.Shell
-$lnk   = $shell.CreateShortcut($shortcut)
+$lnk   = $shell.CreateShortcut($lnkPath)
 
 $lnk.TargetPath       = "wscript.exe"
 $lnk.Arguments        = "`"$vbs`""
@@ -19,8 +28,7 @@ $lnk.IconLocation     = "$ico,0"
 $lnk.Save()
 
 Write-Host ""
-Write-Host "✅ Shortcut created on your desktop: Activity Tracker" -ForegroundColor Green
-Write-Host ""
-Write-Host "Double-click it to start the app." -ForegroundColor Cyan
+Write-Host "Shortcut created on your desktop: Activity Tracker" -ForegroundColor Green
+Write-Host "Double-click it to start the app (no command windows will appear)." -ForegroundColor Cyan
 Write-Host ""
 Read-Host "Press Enter to close"
